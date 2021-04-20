@@ -2,16 +2,16 @@ const { Types } = require("../enip/cip/data-types");
 
 class Template{
     constructor({
-        name, 
-        definition, 
+        name,
+        definition,
         size,
-        alignment=32,
+        alignment=8,
         consecutive_alignment,
-        size_multiple=32,
-        string_length,        
-        //buffer_definition, 
-        //l5x_definition, 
-        serialize, 
+        size_multiple=8,
+        string_length,
+        //buffer_definition,
+        //l5x_definition,
+        serialize,
         deserialize }){
 
         // default consecutive alignment to alignment if none specified
@@ -37,7 +37,7 @@ class Template{
 
         // save local data
         this.state = {
-            template:{ 
+            template:{
                 name,
                 size,
                 alignment,
@@ -87,10 +87,10 @@ class Template{
 
     /**
      * Gets Template Consecutive Alignment
-     * 
+     *
      * Consecutive Alignment specificies how to pack consecutive instances
      * of this template inside of another template
-     * 
+     *
      * @readonly
      * @memberof Template
      * @returns {number} consecutive_alignment in Bits (e.g. DINT returns 32)
@@ -101,11 +101,11 @@ class Template{
 
     /**
      * Gets Template Size Multiple in Bits
-     * 
+     *
      * UDTs are typically sized to a multiple of 32 bits
      * but version 28 and later sizes any UDT with a LINT
      * as a member or nested member to be sized to a mutliple
-     * of 64 bits. This property allows LINT to be set to 64 
+     * of 64 bits. This property allows LINT to be set to 64
      * and propagate up through parent templates
      *
      * @readonly
@@ -118,14 +118,14 @@ class Template{
 
     /**
      * Gets Template String Length
-     * 
-     * This value is used to determine if template is  a string or not. 
-     * 
+     *
+     * This value is used to determine if template is  a string or not.
+     *
      * Non-string templates will have a value of 0.
      * String tempalte will have a value equal to their string length
-     * 
+     *
      * This value is set to a value when a string signature is detected.
-     * 
+     *
      * This value can also be passed into the Template constructor
      * instead of a definition.
      *
@@ -138,7 +138,7 @@ class Template{
 
     /**
      * Gets Template Structure Handle
-     * 
+     *
      * The structure handle is the 16bit CRC of the template
      * This is returned on tag reads to identify the structure type
      * and must be included in the tag write
@@ -166,13 +166,13 @@ class Template{
      * Generates Template Map and Adds Template To Passed Object Map
      *
      * @memberof Template
-     * @returns {templates} Object Map of Templates 
+     * @returns {templates} Object Map of Templates
      */
     addToTemplates(templates){
         let gen = this._generate();
         let req = gen.next();
         while (!req.done)
-            req = gen.next(templates[req.value]); 
+            req = gen.next(templates[req.value]);
         templates[this.name] = this;
     }
 
@@ -225,7 +225,7 @@ class Template{
 
         // add string conversions if member has string signature
         if (string_length){
-            deserializedValue.getString = () => String.fromCharCode(...deserializedValue.DATA).substring(0,deserializedValue.LEN);
+            deserializedValue.getString = () => Buffer.of(...deserializedValue.DATA).toString("utf8");
             deserializedValue.setString = (value) => {
                 deserializedValue.LEN = Math.min(value.length,string_length);
                 deserializedValue.DATA = value.split("").map(char=>char.charCodeAt(0));
@@ -233,7 +233,7 @@ class Template{
                     deserializedValue.DATA.push(0);
             };
         }
-        
+
         return deserializedValue;
     }
     // endregion
@@ -241,7 +241,7 @@ class Template{
     // region Private Methods
     /**
      * Generates Template Members
-     * 
+     *
      * Generator for mapping template members.
      * Will yield for each member type expecting the
      * corresponding template to be returned.
@@ -252,7 +252,7 @@ class Template{
     *_generate(){
         //TODO - calculate structure handle -  needed to write UDT without reading
         const { template, definition } = this.state;
-        const { members } = template;
+        const { members, string_length } = template;
         let offset = 0;
         let last_type;
         let last_mem;
@@ -261,7 +261,7 @@ class Template{
         for(let mem in definition){
             // get type as either an object key or value of member (i.e { member: { type: type }} or { member: type })
             let type = definition[mem].type || definition[mem];
-            
+
             // get length as object key or default to 0 (needed for arrays)
             let length = definition[mem].type ? definition[mem].length | 0 : 0;
 
@@ -270,9 +270,10 @@ class Template{
 
             // align offset
             let alignment = last_type === type ? member_template.consecutive_alignment : member_template.alignment;
-            if (length > 0 && alignment < 32)
-                alignment = 32;
-            offset = Math.ceil(offset/alignment)*alignment; 
+            if (length > 0 && alignment < 8) {
+                alignment = 8;
+            }
+            offset = Math.ceil(offset/alignment)*alignment;
 
             // set final member key as member or array of members
             if (length){
@@ -281,14 +282,14 @@ class Template{
                     members[mem].push({
                         offset,
                         template: member_template,
-                    });  
+                    });
                     offset += member_template.size;
                 }
             } else {
                 members[mem] = {
                     offset,
                     template: member_template,
-                };  
+                };
                 offset += member_template.size;
             }
 
@@ -297,8 +298,8 @@ class Template{
 
 
             // check if type is string and set string_length to DATA array length
-            template.string_length = type === Types.SINT && last_type === Types.DINT && mem === "DATA" && last_mem === "LEN" && length > 0 && Object.keys(members).length === 2 ? length : 0;
-            
+            template.string_length = type === Types.SINT && (last_type === Types.SINT || last_type === Types.INT) && mem === "DATA" && last_mem === "LEN" && length > 0 && Object.keys(members).length === 2 ? length : 0;
+
             // save last type and name
             last_type = type;
             last_mem = mem;
@@ -316,14 +317,14 @@ class Template{
      */
     _buildDefinitionFromStringLength(string_length){
         return {
-            LEN: Types.DINT,
+            LEN: Types.INT,
             DATA: { type: Types.SINT, length: string_length}
         };
     }
 
     /**
      * Builds a Template Defintion from a Buffer read from the Controller
-     * 
+     *
      * Not Implemented Yet
      *
      * @memberof Template
@@ -336,7 +337,7 @@ class Template{
 
     /**
      * Builds a Template Defintion from an L5x file
-     * 
+     *
      * Not Implemented Yet
      *
      * @memberof Template

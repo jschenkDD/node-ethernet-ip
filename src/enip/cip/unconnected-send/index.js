@@ -51,7 +51,7 @@ const generateEncodedTimeout = timeout => {
  * @param {number} [timeout=2000] - timeout
  * @returns {buffer}
  */
-const build = (message_request, path, timeout = 2000) => {
+const build = (message_request, path, timeout = 5056) => {
     if (!Buffer.isBuffer(message_request))
         throw new Error("Message Request Must be of Type Buffer");
     if (!Buffer.isBuffer(path)) throw new Error("Path Must be of Type Buffer");

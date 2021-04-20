@@ -380,12 +380,12 @@ class Tag extends EventEmitter {
      */
     parseReadMessageResponse(data) {
         const { tag } = this.state;
-        const { SINT, INT, DINT, BIT_STRING, STRUCT } = Types;
+        const { SINT, INT, DINT, BIT_STRING, STRUCT, STRING } = Types;
 
         const type = data.readUInt16LE(0);
         if (!tag.type) tag.type = type;
         else {
-            if (tag.type !== type && ( typeof tag.type !== "string" || type !== Types.STRUCT)) 
+            if (tag.type !== type && (typeof tag.type !== "string" || (type !== STRUCT && type !== STRING)))
                 throw new Error(`Type Read Mismatch - tag: ${tag.type} vs read: ${type}`);
         }
 
@@ -515,15 +515,15 @@ class Tag extends EventEmitter {
      */
     _getTemplate() {
         const { tag } = this.state;
-        
+
         if (!tag.controller) throw new Error("Template read error - tag controller property not set");
         if (!tag.controller.templates) throw new Error("Template read error - tag controller templates property not set");
         if (!tag.type) throw new Error("Template read error - tag type property not set");
-        
+
         const template = tag.controller.templates[tag.type];
-        
+
         if (!template)  throw new Error(`Template read error - cannot find template for type: ${tag.type}`);
-        
+
         return template;
     }
     // endregion
