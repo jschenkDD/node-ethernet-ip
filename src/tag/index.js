@@ -522,7 +522,10 @@ class Tag extends EventEmitter {
 
         const template = tag.controller.templates[tag.type];
 
-        if (!template)  throw new Error(`Template read error - cannot find template for type: ${tag.type}`);
+        if (!template) {
+            console.error("Could not find template for ", tag.name);
+            throw new Error(`Template read error - cannot find template for type: ${tag.type}`);
+        }
 
         return template;
     }

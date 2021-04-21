@@ -549,7 +549,7 @@ class Controller extends ENIP {
                     if (err) reject(err);
 
                     tag.unstageWriteRequest();
-                    
+
                     resolve(data);
                 });
 
@@ -720,7 +720,7 @@ class Controller extends ENIP {
                 break;
             case WRITE_TAG_FRAGMENTED:
                 this.emit("Write Tag Fragmented", error, data);
-                break;            
+                break;
             case READ_MODIFY_WRITE_TAG:
                 this.emit("Read Modify Write Tag", error, data);
                 break;

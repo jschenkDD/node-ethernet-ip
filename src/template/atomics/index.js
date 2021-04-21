@@ -1,4 +1,4 @@
-const { Types: { BOOL, SINT, INT, DINT, LINT, REAL, LREAL, TIME } } = require("../../enip/cip/data-types");
+const { Types: { BOOL, SINT, INT, DINT, LINT, REAL, LREAL, TIME, USINT, UINT, WORD, UDINT } } = require("../../enip/cip/data-types");
 const Template = require("../../template");
 
 module.exports = () => {
@@ -35,6 +35,15 @@ module.exports = () => {
                 return data.readInt8((offset/8));
             }
         }),
+        [USINT]: new Template({
+            size: 8,
+            alignment: 8,
+            serialize(value,data=Buffer.alloc(1),offset=0){
+                data.writeUInt8(value,offset/8);
+                return data;
+            },
+            deserialize: (data=Buffer.alloc(1),offset=0) => data.readUInt8(offset/8)
+        }),
         [INT]: new Template({
             size: 16,
             alignment: 16,
@@ -44,6 +53,24 @@ module.exports = () => {
             },
             deserialize: (data=Buffer.alloc(2),offset=0) => data.readInt16LE(offset/8)
         }),
+        [UINT]: new Template({
+            size: 16,
+            alignment: 16,
+            serialize(value,data=Buffer.alloc(2),offset=0){
+                data.writeUInt16LE(value,offset/8);
+                return data;
+            },
+            deserialize: (data=Buffer.alloc(2),offset=0) => data.readUInt16LE(offset/8)
+        }),
+        [WORD]: new Template({
+            size: 16,
+            alignment: 16,
+            serialize(value,data=Buffer.alloc(2),offset=0){
+                data.writeUInt16LE(value,offset/8);
+                return data;
+            },
+            deserialize: (data=Buffer.alloc(2),offset=0) => data.readUInt16LE(offset/8)
+        }),
         [DINT]: new Template({
             size: 32,
             serialize(value,data=Buffer.alloc(4),offset=0){
@@ -51,6 +78,14 @@ module.exports = () => {
                 return data;
             },
             deserialize: (data=Buffer.alloc(4),offset=0) => data.readInt32LE(offset/8)
+        }),
+        [UDINT]: new Template({
+            size: 32,
+            serialize(value,data=Buffer.alloc(4),offset=0){
+                data.writeUInt32LE(value,offset/8);
+                return data;
+            },
+            deserialize: (data=Buffer.alloc(4),offset=0) => data.readUInt32LE(offset/8)
         }),
         [LINT]: new Template({
             size: 64,
