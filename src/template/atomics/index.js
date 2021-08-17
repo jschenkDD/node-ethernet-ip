@@ -151,7 +151,8 @@ module.exports = () => {
                 return data;
             },
             deserialize: (data = Buffer.alloc(8), offset = 0) => {
-                return data.readBigUInt64LE(offset / 8);
+                const number = Number(data.readBigUInt64LE(offset / 8));
+                return (number / 1000000000); // nano seconds in seconds
             }
         }),
     };
