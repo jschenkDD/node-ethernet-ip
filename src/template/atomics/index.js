@@ -11,7 +11,8 @@ const {
         USINT,
         UINT,
         WORD,
-        UDINT
+        UDINT,
+        TIME_NSEC
     }
 } = require("../../enip/cip/data-types");
 const Template = require("../../template");
@@ -143,6 +144,19 @@ module.exports = () => {
             }
         }),
         [TIME]: new Template({
+            size: 64,
+            alignment: 64,
+            size_multiple: 64,
+            serialize(value, data = Buffer.alloc(8), offset = 0) {
+                data.writeBigUInt64LE(value, offset / 8);
+                return data;
+            },
+            deserialize: (data = Buffer.alloc(8), offset = 0) => {
+                const number = Number(data.readBigUInt64LE(offset / 8));
+                return (number / 1000000000); // nano seconds in seconds
+            }
+        }),
+        [TIME_NSEC]: new Template({
             size: 64,
             alignment: 64,
             size_multiple: 64,

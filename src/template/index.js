@@ -1,18 +1,19 @@
-const { Types } = require("../enip/cip/data-types");
+const {Types} = require("../enip/cip/data-types");
 
-class Template{
+class Template {
     constructor({
-        name,
-        definition,
-        size,
-        alignment=8,
-        consecutive_alignment,
-        size_multiple=8,
-        string_length,
-        //buffer_definition,
-        //l5x_definition,
-        serialize,
-        deserialize }){
+                    name,
+                    definition,
+                    size,
+                    alignment = 8,
+                    consecutive_alignment,
+                    size_multiple = 8,
+                    string_length,
+                    //buffer_definition,
+                    //l5x_definition,
+                    serialize,
+                    deserialize
+                }) {
 
         // default consecutive alignment to alignment if none specified
         if (!consecutive_alignment)
@@ -37,7 +38,7 @@ class Template{
 
         // save local data
         this.state = {
-            template:{
+            template: {
                 name,
                 size,
                 alignment,
@@ -45,7 +46,7 @@ class Template{
                 size_multiple,
                 string_length,
                 structure_handle: null,
-                members:{}
+                members: {}
             },
             definition,
         };
@@ -59,7 +60,7 @@ class Template{
      * @memberof Template
      * @returns {string} name
      */
-    get name(){
+    get name() {
         return this.state.template.name;
     }
 
@@ -70,7 +71,7 @@ class Template{
      * @memberof Template
      * @returns {number} size
      */
-    get size(){
+    get size() {
         return this.state.template.size;
     }
 
@@ -81,7 +82,7 @@ class Template{
      * @memberof Template
      * @returns {number} alignment in bits (e.g. DINT returns 32)
      */
-    get alignment(){
+    get alignment() {
         return this.state.template.alignment;
     }
 
@@ -95,7 +96,7 @@ class Template{
      * @memberof Template
      * @returns {number} consecutive_alignment in Bits (e.g. DINT returns 32)
      */
-    get consecutive_alignment(){
+    get consecutive_alignment() {
         return this.state.template.consecutive_alignment;
     }
 
@@ -112,7 +113,7 @@ class Template{
      * @memberof Template
      * @returns {number} size_mutiple in bits
      */
-    get size_multiple(){
+    get size_multiple() {
         return this.state.template.size_multiple;
     }
 
@@ -132,7 +133,7 @@ class Template{
      * @memberof Template
      * @returns {number} string_length in bytes
      */
-    get string_length(){
+    get string_length() {
         return this.state.template.string_length;
     }
 
@@ -146,7 +147,7 @@ class Template{
      * @memberof Template
      * @returns {number} structure_handle byte code
      */
-    get structure_handle(){
+    get structure_handle() {
         return this.state.template.structure_handle;
     }
 
@@ -156,9 +157,10 @@ class Template{
      * @memberof Template
      * @property {number} structure_handle byte code
      */
-    set structure_handle(structure_handle){
+    set structure_handle(structure_handle) {
         this.state.template.structure_handle = structure_handle;
     }
+
     // endregion
 
     // region Public Method Definitions
@@ -168,7 +170,7 @@ class Template{
      * @memberof Template
      * @returns {templates} Object Map of Templates
      */
-    addToTemplates(templates){
+    addToTemplates(templates) {
         let gen = this._generate();
         let req = gen.next();
         while (!req.done)
@@ -182,20 +184,20 @@ class Template{
      * @memberof Template
      * @returns {Buffer}
      */
-    serialize(value, data = Buffer.alloc(this.size/8), offset = 0){
-        const { template: { members }} = this.state;
+    serialize(value, data = Buffer.alloc(this.size / 8), offset = 0) {
+        const {template: {members}} = this.state;
 
-        return Object.keys(value).reduce((template_data,member)=>
-            // is member array?
-            Array.isArray(value[member]) ?
-                // array - reduce elements
-                value[member].reduce((element_data,element,index)=>
-                    // array - serailize element
-                    members[member][index].template.serialize(element, element_data, offset + members[member][index].offset),
-                template_data):
-                // not array - serialize template (if template exists [e.g. string conversion functions will not pass])
-                members[member] ? members[member].template.serialize(value[member], template_data, offset + members[member].offset) : template_data,
-        data);
+        return Object.keys(value).reduce((template_data, member) =>
+                // is member array?
+                Array.isArray(value[member]) ?
+                    // array - reduce elements
+                    value[member].reduce((element_data, element, index) =>
+                            // array - serailize element
+                            members[member][index].template.serialize(element, element_data, offset + members[member][index].offset),
+                        template_data) :
+                    // not array - serialize template (if template exists [e.g. string conversion functions will not pass])
+                    members[member] ? members[member].template.serialize(value[member], template_data, offset + members[member].offset) : template_data,
+            data);
     }
 
     /**
@@ -204,31 +206,31 @@ class Template{
      * @memberof Template
      * @returns {Object}
      */
-    deserialize(data, offset=0){
-        const { template: { string_length, members }} = this.state;
+    deserialize(data, offset = 0) {
+        const {template: {string_length, members}} = this.state;
 
-        const deserializedValue =  Object.keys(members).reduce((value,member)=>{
+        const deserializedValue = Object.keys(members).reduce((value, member) => {
             // is memeber array?
-            if (Array.isArray(members[member])){
+            if (Array.isArray(members[member])) {
                 // array - reduce elements
-                value[member] = members[member].reduce((working_value,element)=>{
+                value[member] = members[member].reduce((working_value, element) => {
                     // array - deserialize element
-                    working_value.push(element.template.deserialize(data,offset + element.offset));
+                    working_value.push(element.template.deserialize(data, offset + element.offset));
                     return working_value;
-                },[]);
+                }, []);
             } else {
                 // not array - deserialize template
-                value[member] = members[member].template.deserialize(data,offset + members[member].offset);
+                value[member] = members[member].template.deserialize(data, offset + members[member].offset);
             }
             return value;
-        },{});
+        }, {});
 
         // add string conversions if member has string signature
-        if (string_length){
+        if (string_length) {
             deserializedValue.getString = () => Buffer.of(...deserializedValue.DATA).toString("utf8");
             deserializedValue.setString = (value) => {
-                deserializedValue.LEN = Math.min(value.length,string_length);
-                deserializedValue.DATA = value.split("").map(char=>char.charCodeAt(0));
+                deserializedValue.LEN = Math.min(value.length, string_length);
+                deserializedValue.DATA = value.split("").map(char => char.charCodeAt(0));
                 while (deserializedValue.DATA.length < string_length)
                     deserializedValue.DATA.push(0);
             };
@@ -236,6 +238,7 @@ class Template{
 
         return deserializedValue;
     }
+
     // endregion
 
     // region Private Methods
@@ -249,16 +252,16 @@ class Template{
      * @memberof Template
      * @returns {null}
      */
-    *_generate(){
+    * _generate() {
         //TODO - calculate structure handle -  needed to write UDT without reading
-        const { template, definition } = this.state;
-        const { members, string_length } = template;
+        const {template, definition} = this.state;
+        const {members, string_length} = template;
         let offset = 0;
         let last_type;
         let last_mem;
 
         // loop through definition keys
-        for(let mem in definition){
+        for (let mem in definition) {
             // get type as either an object key or value of member (i.e { member: { type: type }} or { member: type })
             let type = definition[mem].type || definition[mem];
 
@@ -273,12 +276,12 @@ class Template{
             if (length > 0 && alignment < 8) {
                 alignment = 8;
             }
-            offset = Math.ceil(offset/alignment)*alignment;
+            offset = Math.ceil((offset / alignment) * alignment);
 
             // set final member key as member or array of members
-            if (length){
+            if (length) {
                 members[mem] = [];
-                for(let index = 0; index < length; index++){
+                for (let index = 0; index < length; index++) {
                     members[mem].push({
                         offset,
                         template: member_template,
@@ -306,7 +309,7 @@ class Template{
         }
 
         // save final size on size multiple
-        template.size = Math.ceil(offset/template.size_multiple)*template.size_multiple;
+        template.size = Math.ceil(offset / template.size_multiple) * template.size_multiple;
     }
 
     /**
@@ -315,10 +318,10 @@ class Template{
      * @memberof Template
      * @returns {Object} template definition
      */
-    _buildDefinitionFromStringLength(string_length){
+    _buildDefinitionFromStringLength(string_length) {
         return {
             LEN: Types.INT,
-            DATA: { type: Types.SINT, length: string_length}
+            DATA: {type: Types.SINT, length: string_length}
         };
     }
 
