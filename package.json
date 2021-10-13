@@ -1,6 +1,6 @@
 {
     "name": "@dreebit/ethernet-ip-omron",
-    "version": "1.2.6",
+    "version": "1.2.7",
     "description": "A simple node interface for Ethernet/IP.",
     "main": "./src/index.js",
     "scripts": {

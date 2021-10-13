@@ -223,14 +223,25 @@ header.build = (cmd, session = 0x00, data = []) => {
 header.parse = buf => {
     if (!Buffer.isBuffer(buf)) throw new Error("header.parse accepts type <Buffer> only!");
 
+    let commandCode, length, session, statusCode, options = 0;
+    try {
+        commandCode = buf.readUInt16LE(0);
+        length = buf.readUInt16LE(2);
+        session = buf.readUInt32LE(4);
+        statusCode = buf.readUInt32LE(8);
+        options = buf.readUInt32LE(20);
+    } catch (e) {
+        console.log("Error reading bytes header.parse", buf);
+    }
+
     const received = {
-        commandCode: buf.readUInt16LE(0),
+        commandCode,
         command: null,
-        length: buf.readUInt16LE(2),
-        session: buf.readUInt32LE(4),
-        statusCode: buf.readUInt32LE(8),
+        length,
+        session,
+        statusCode,
         status: null,
-        options: buf.readUInt32LE(20),
+        options,
         data: null
     };
 
