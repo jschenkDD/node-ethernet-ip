@@ -237,53 +237,57 @@ class ENIP extends Socket {
     _handleDataEvent(data) {
         const { header, CPF, commands } = encapsulation;
 
-        const encapsulatedData = header.parse(data);
-        const { statusCode, status, commandCode } = encapsulatedData;
+        try {
+            const encapsulatedData = header.parse(data);
+            const {statusCode, status, commandCode} = encapsulatedData;
 
-        if (statusCode !== 0) {
-            console.log(`Error <${statusCode}>:`.red, status.red);
+            if (statusCode !== 0) {
+                console.log(`Error <${statusCode}>:`.red, status.red);
 
-            this.state.error.code = statusCode;
-            this.state.error.msg = status;
+                this.state.error.code = statusCode;
+                this.state.error.msg = status;
 
-            this.emit("Session Registration Failed", this.state.error);
-        } else {
-            this.state.error.code = null;
-            this.state.error.msg = null;
-            /* eslint-disable indent */
-            switch (commandCode) {
-                case commands.RegisterSession:
-                    this.state.session.establishing = false;
-                    this.state.session.established = true;
-                    this.state.session.id = encapsulatedData.session;
-                    this.emit("Session Registered", this.state.session.id);
-                    break;
+                this.emit("Session Registration Failed", this.state.error);
+            } else {
+                this.state.error.code = null;
+                this.state.error.msg = null;
+                /* eslint-disable indent */
+                switch (commandCode) {
+                    case commands.RegisterSession:
+                        this.state.session.establishing = false;
+                        this.state.session.established = true;
+                        this.state.session.id = encapsulatedData.session;
+                        this.emit("Session Registered", this.state.session.id);
+                        break;
 
-                case commands.UnregisterSession:
-                    this.state.session.established = false;
-                    this.emit("Session Unregistered");
-                    break;
+                    case commands.UnregisterSession:
+                        this.state.session.established = false;
+                        this.emit("Session Unregistered");
+                        break;
 
-                case commands.SendRRData: {
-                    let buf1 = Buffer.alloc(encapsulatedData.length - 6); // length of Data - Interface Handle <UDINT> and Timeout <UINT>
-                    encapsulatedData.data.copy(buf1, 0, 6);
+                    case commands.SendRRData: {
+                        let buf1 = Buffer.alloc(encapsulatedData.length - 6); // length of Data - Interface Handle <UDINT> and Timeout <UINT>
+                        encapsulatedData.data.copy(buf1, 0, 6);
 
-                    const srrd = CPF.parse(buf1);
-                    this.emit("SendRRData Received", srrd);
-                    break;
+                        const srrd = CPF.parse(buf1);
+                        this.emit("SendRRData Received", srrd);
+                        break;
+                    }
+                    case commands.SendUnitData: {
+                        let buf2 = Buffer.alloc(encapsulatedData.length - 6); // length of Data - Interface Handle <UDINT> and Timeout <UINT>
+                        encapsulatedData.data.copy(buf2, 0, 6);
+
+                        const sud = CPF.parse(buf2);
+                        this.emit("SendUnitData Received", sud);
+                        break;
+                    }
+                    default:
+                        this.emit("Unhandled Encapsulated Command Received", encapsulatedData);
                 }
-                case commands.SendUnitData: {
-                    let buf2 = Buffer.alloc(encapsulatedData.length - 6); // length of Data - Interface Handle <UDINT> and Timeout <UINT>
-                    encapsulatedData.data.copy(buf2, 0, 6);
-
-                    const sud = CPF.parse(buf2);
-                    this.emit("SendUnitData Received", sud);
-                    break;
-                }
-                default:
-                    this.emit("Unhandled Encapsulated Command Received", encapsulatedData);
+                /* eslint-enable indent */
             }
-            /* eslint-enable indent */
+        } catch (e) {
+            console.log("Error handle received data", e);
         }
     }
 

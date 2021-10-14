@@ -58,10 +58,21 @@ const build = (service, path, data) => {
  * @returns {MessageRouter} Decoded Message Router Object
  */
 const parse = buf => {
+
+    let service, generalStatusCode, extendedStatusLength = 0;
+    try {
+        service = buf.readUInt8(0);
+        generalStatusCode = buf.readUInt8(2);
+        extendedStatusLength = buf.readUInt8(3);
+    } catch (e) {
+        console.log("Error parsing within message router", e);
+        console.log("Buffer is", buf);
+    }
+
     let MessageRouter = {
-        service: buf.readUInt8(0),
-        generalStatusCode: buf.readUInt8(2),
-        extendedStatusLength: buf.readUInt8(3),
+        service,
+        generalStatusCode,
+        extendedStatusLength,
         extendedStatus: null,
         data: null
     };
@@ -69,21 +80,25 @@ const parse = buf => {
     // Build Extended Status Array
     let arr = [];
     for (let i = 0; i < MessageRouter.extendedStatusLength; i++) {
-        arr.push(buf.readUInt16LE(i * 2 + 4));
+        if (buf.length >= (i * 2 + 4)) {
+            arr.push(buf.readUInt16LE(i * 2 + 4));
+        }
     }
     MessageRouter.extendedStatus = arr;
 
     // Get Starting Point of Message Router Data
     const dataStart = MessageRouter.extendedStatusLength * 2 + 4;
 
-    // Initialize Message Router Data Buffer
-    let data = Buffer.alloc(buf.length - dataStart);
-
-    // Copy Data to Message Router Data Buffer
-    buf.copy(data, 0, dataStart);
+    let data = Buffer.from([]);
+    const allocLength = buf.length - dataStart;
+    if (allocLength > 0) { // Initialize Message Router Data Buffer
+        data = Buffer.alloc(allocLength);
+        // Copy Data to Message Router Data Buffer
+        buf.copy(data, 0, dataStart);
+    }
     MessageRouter.data = data;
 
     return MessageRouter;
 };
 
-module.exports = { build, parse, services };
+module.exports = {build, parse, services};

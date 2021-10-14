@@ -679,8 +679,9 @@ class Controller extends ENIP {
      * @memberof Controller
      */
     _handleSendRRDataReceived(srrd) {
+        const bufferData = srrd.length > 0 ? srrd[1].data : Buffer.from([]);
         const { service, generalStatusCode, extendedStatus, data } = CIP.MessageRouter.parse(
-            srrd[1].data
+            bufferData
         );
 
         const {

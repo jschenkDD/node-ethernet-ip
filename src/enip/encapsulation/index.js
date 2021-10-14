@@ -20,7 +20,9 @@ const commands = {
  * @returns {string} Human Readable Error Message
  */
 const parseStatus = status => {
-    if (typeof status !== "number") throw new Error("parseStatus accepts type <Number> only!");
+    if (typeof status !== "number") {
+        throw new Error(`parseStatus accepts type number only! Status ${status} is of type ${typeof status}`);
+    }
 
     /* eslint-disable indent */
     switch (status) {
@@ -107,7 +109,7 @@ CPF.build = dataItems => {
     buf.writeUInt16LE(dataItems.length, 0);
 
     for (let item of dataItems) {
-        const { TypeID, data } = item;
+        const {TypeID, data} = item;
 
         if (!CPF.isCmd(TypeID)) throw new Error("Invalid CPF Type ID!");
 
@@ -150,7 +152,7 @@ CPF.parse = buf => {
         buf.copy(data, 0, ptr, ptr + length);
 
         // Append Gathered Data Object to Return Array
-        arr.push({ TypeID, data });
+        arr.push({TypeID, data});
 
         ptr += length;
     }
@@ -223,15 +225,36 @@ header.build = (cmd, session = 0x00, data = []) => {
 header.parse = buf => {
     if (!Buffer.isBuffer(buf)) throw new Error("header.parse accepts type <Buffer> only!");
 
-    let commandCode, length, session, statusCode, options = 0;
+    let commandCode, length, session, statusCode, options;
     try {
         commandCode = buf.readUInt16LE(0);
+    } catch (e) {
+        console.log("Error parsing command code from header", buf);
+        commandCode = 0;
+    }
+    try {
         length = buf.readUInt16LE(2);
+    } catch (e) {
+        console.log("Error parsing length from header", buf);
+        length = 0;
+    }
+    try {
         session = buf.readUInt32LE(4);
+    } catch (e) {
+        console.log("Error parsing options from header", buf);
+        session = 0;
+    }
+    try {
         statusCode = buf.readUInt32LE(8);
+    } catch (e) {
+        console.log("Error parsing status code from header", buf);
+        statusCode = 0;
+    }
+    try {
         options = buf.readUInt32LE(20);
     } catch (e) {
-        console.log("Error reading bytes header.parse", buf);
+        console.log("Error parsing options from header", buf);
+        options = 0;
     }
 
     const received = {
@@ -271,8 +294,8 @@ header.parse = buf => {
  * @returns {string} register session string
  */
 const registerSession = () => {
-    const { RegisterSession } = commands;
-    const { build } = header;
+    const {RegisterSession} = commands;
+    const {build} = header;
     const cmdBuf = Buffer.alloc(4);
     cmdBuf.writeUInt16LE(0x01, 0); // Protocol Version (Required to be 1)
     cmdBuf.writeUInt16LE(0x00, 2); // Opton Flags (Reserved for Future List)
@@ -288,8 +311,8 @@ const registerSession = () => {
  * @returns {string} unregister seeion strings
  */
 const unregisterSession = session => {
-    const { UnregisterSession } = commands;
-    const { build } = header;
+    const {UnregisterSession} = commands;
+    const {build} = header;
 
     // Build Unregister Session Buffer
     return build(UnregisterSession, session);
@@ -304,7 +327,7 @@ const unregisterSession = session => {
  * @returns {string} UCMM Encapsulated Message String
  */
 const sendRRData = (session, data, timeout = 10) => {
-    const { SendRRData } = commands;
+    const {SendRRData} = commands;
 
     let timeoutBuf = Buffer.alloc(6);
     timeoutBuf.writeUInt32LE(0x00, 0); // Interface Handle ID (Shall be 0 for CIP)
@@ -312,8 +335,8 @@ const sendRRData = (session, data, timeout = 10) => {
 
     // Enclose in Common Packet Format
     let buf = CPF.build([
-        { TypeID: CPF.ItemIDs.Null, data: Buffer.from([]) },
-        { TypeID: CPF.ItemIDs.UCMM, data: data }
+        {TypeID: CPF.ItemIDs.Null, data: Buffer.from([])},
+        {TypeID: CPF.ItemIDs.UCMM, data: data}
     ]);
 
     // Join Timeout Data with
@@ -333,7 +356,7 @@ const sendRRData = (session, data, timeout = 10) => {
  * @returns {string} Connected Message Datagram String
  */
 const sendUnitData = (session, data, ConnectionID, SequnceNumber) => {
-    const { SendUnitData } = commands;
+    const {SendUnitData} = commands;
 
     let timeoutBuf = Buffer.alloc(6);
     timeoutBuf.writeUInt32LE(0x00, 0); // Interface Handle ID (Shall be 0 for CIP)
