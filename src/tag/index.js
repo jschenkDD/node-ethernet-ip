@@ -518,7 +518,9 @@ class Tag extends EventEmitter {
 
         if (!tag.controller) throw new Error("Template read error - tag controller property not set");
         if (!tag.controller.templates) throw new Error("Template read error - tag controller templates property not set");
-        if (!tag.type) throw new Error("Template read error - tag type property not set");
+        if (!tag.type) {
+            throw new Error(`Template read error - tag type property not set for tag ${tag.name}`);
+        }
 
         const template = tag.controller.templates[tag.type];
 
