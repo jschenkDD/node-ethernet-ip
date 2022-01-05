@@ -23,11 +23,11 @@ module.exports = () => {
             size: 1,
             alignment: 16, // 2 Byte
             consecutive_alignment: 1,
-            serialize(value, data = Buffer.alloc(1), offset = 0) {
+            serialize(value, data = Buffer.alloc(2), offset = 0) {
                 const bit_offset = offset % 8;
                 const byte_offset = (offset - bit_offset) / 8;
                 let byte_value = data.readUInt8(byte_offset);
-                data.writeUInt8(value ? byte_value | 1 << bit_offset : byte_value & (255 & ~(1 << bit_offset)), byte_offset);
+                data.writeUInt16LE(value ? byte_value | 1 << bit_offset : byte_value & (255 & ~(1 << bit_offset)), byte_offset);
                 return data;
             },
             deserialize(data = Buffer.alloc(1), offset = 0) {
